@@ -1,33 +1,41 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_VERSION = '12'
+    tools {
+        nodejs "NodeJS_12"
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
     }
 
     stages {
+        stage('Cleanup') {
+            steps {
+                cleanWs()
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Set Node Version') {
-            steps {
-                sh 'node -v || (echo "Node.js not found. Installing Node.js..." && sudo apt update && sudo apt install -y nodejs npm)'
-                sh 'node -v' // Confirm Node.js version
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                timeout(time: 5, unit: 'MINUTES') {
+                    retry(2) {
+                        sh 'npm install'
+                    }
+                }
             }
         }
 
         stage('Build APK') {
             steps {
-                sh './build.sh' // Adjust this based on your build script
+                sh 'chmod +x build.sh && ./build.sh'
             }
         }
 
