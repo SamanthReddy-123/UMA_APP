@@ -2,12 +2,16 @@ pipeline {
     agent any
 
     tools {
-        nodejs "NodeJS_12"
+        nodejs "NodeJS_12" // Make sure this version is defined in Jenkins > Global Tool Configuration
     }
 
     options {
         timestamps()
         ansiColor('xterm')
+    }
+
+    environment {
+        NODE_ENV = 'production'
     }
 
     stages {
