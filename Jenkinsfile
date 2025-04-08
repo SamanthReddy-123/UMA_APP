@@ -5,7 +5,6 @@ pipeline {
         NODE_ENV = 'production'
         AWS_REGION = 'us-east-1'
         S3_BUCKET = 'uma-apk-artifacts'
-        APK_OUTPUT_PATH = 'build/app/outputs/flutter-apk/app-release.apk'
     }
 
     stages {
@@ -44,27 +43,30 @@ pipeline {
             }
         }
 
-        stage('Check Flutter') {
+        stage('Create bash.sh') {
             steps {
-                sh '''
-                    echo "Checking Flutter installation..."
-                    if ! command -v flutter &> /dev/null; then
-                        echo "❌ Flutter not found. Please install Flutter on the Jenkins agent."
-                        exit 1
-                    fi
-                    flutter --version
-                '''
+                script {
+                    writeFile file: 'bash.sh', text: '''#!/bin/bash
+echo "Hello from Jenkins!"
+echo "Current Date and Time: $(date)"
+echo "Current User: $(whoami)"
+echo "Files in current directory:"
+ls -la
+'''
+                }
+                sh 'chmod +x bash.sh'
+            }
+        }
+
+        stage('Run bash.sh') {
+            steps {
+                sh './bash.sh'
             }
         }
 
         stage('Build APK') {
             steps {
-                sh '''
-                    echo "🔧 Cleaning and building APK..."
-                    flutter clean
-                    flutter pub get
-                    flutter build apk --release
-                '''
+                sh 'chmod +x build.sh && ./build.sh'
             }
         }
 
@@ -72,14 +74,16 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds-id']]) {
                     sh '''
-                        echo "☁️ Uploading APK to S3..."
-                        if [ -f "$APK_OUTPUT_PATH" ]; then
-                            aws s3 cp "$APK_OUTPUT_PATH" "s3://$S3_BUCKET/app-release.apk" --region $AWS_REGION
-                            echo "✅ APK uploaded successfully."
+                        echo "Creating bucket if not exists..."
+                        if ! aws s3 ls "s3://$S3_BUCKET" --region $AWS_REGION 2>&1 | grep -q 'NoSuchBucket'; then
+                            echo "Bucket already exists."
                         else
-                            echo "❌ APK file not found at: $APK_OUTPUT_PATH"
-                            exit 1
+                            echo "Creating bucket: $S3_BUCKET"
+                            aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
                         fi
+
+                        echo "Uploading APK to S3..."
+                        aws s3 cp build/app-debug.apk s3://$S3_BUCKET/ --region $AWS_REGION
                     '''
                 }
             }
