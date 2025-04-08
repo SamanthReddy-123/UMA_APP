@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         NODE_ENV = 'production'
+        AWS_REGION = 'us-east-1'
+        S3_BUCKET = 'your-s3-bucket-name' // 🔁 Replace with actual bucket
     }
 
     stages {
@@ -45,7 +47,6 @@ pipeline {
             steps {
                 script {
                     writeFile file: 'bash.sh', text: '''#!/bin/bash
-# Simple Jenkins-created shell script
 echo "Hello from Jenkins!"
 echo "Current Date and Time: $(date)"
 echo "Current User: $(whoami)"
@@ -72,6 +73,20 @@ ls -la
         stage('Archive APK') {
             steps {
                 archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
+            }
+        }
+
+        stage('Upload to S3') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds-id' // 🔁 Replace with your Jenkins AWS credentials ID
+                ]]) {
+                    sh '''
+                        echo "Uploading APK to S3..."
+                        aws s3 cp build/app-debug.apk s3://$S3_BUCKET/ --region $AWS_REGION
+                    '''
+                }
             }
         }
     }
