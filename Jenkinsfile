@@ -24,9 +24,9 @@ pipeline {
             steps {
                 sh '''
                     echo "Node.js Version:"
-                    node -v
+                    node -v || echo "Node not installed"
                     echo "npm Version:"
-                    npm -v
+                    npm -v || echo "npm not installed"
                 '''
             }
         }
@@ -74,16 +74,16 @@ ls -la
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds-id']]) {
                     sh '''
-                        echo "Creating bucket if not exists..."
+                        echo "☁️ Uploading APK to S3..."
+
                         if ! aws s3 ls "s3://$S3_BUCKET" --region $AWS_REGION 2>&1 | grep -q 'NoSuchBucket'; then
-                            echo "Bucket already exists."
+                            echo "✅ Bucket already exists."
                         else
-                            echo "Creating bucket: $S3_BUCKET"
+                            echo "🪣 Creating bucket: $S3_BUCKET"
                             aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
                         fi
 
-                        echo "Uploading APK to S3..."
-                        aws s3 cp build/app-debug.apk s3://$S3_BUCKET/ --region $AWS_REGION
+                        aws s3 cp build/app/outputs/flutter-apk/app-release.apk s3://$S3_BUCKET/app-release.apk --region $AWS_REGION
                     '''
                 }
             }
@@ -91,7 +91,7 @@ ls -la
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'build/app/outputs/flutter-apk/*.apk', allowEmptyArchive: true
             }
         }
     }
