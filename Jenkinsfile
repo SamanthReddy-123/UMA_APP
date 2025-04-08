@@ -5,6 +5,7 @@ pipeline {
         NODE_ENV = 'production'
         AWS_REGION = 'us-east-1'
         S3_BUCKET = 'uma-apk-artifacts'
+        APK_OUTPUT_PATH = 'build/app/outputs/flutter-apk/app-release.apk'
     }
 
     stages {
@@ -43,22 +44,27 @@ pipeline {
             }
         }
 
+        stage('Check Flutter') {
+            steps {
+                sh '''
+                    echo "Checking Flutter installation..."
+                    if ! command -v flutter &> /dev/null; then
+                        echo "❌ Flutter not found. Please install Flutter on the Jenkins agent."
+                        exit 1
+                    fi
+                    flutter --version
+                '''
+            }
+        }
+
         stage('Build APK') {
             steps {
-                script {
-                    writeFile file: 'build.sh', text: '''#!/bin/bash
-#!/bin/bash
-echo "🔧 Cleaning and fetching dependencies..."
-flutter clean
-flutter pub get
-
-echo "📦 Building release APK..."
-flutter build apk --release
-
-echo "✅ APK built at: build/app/outputs/flutter-apk/app-release.apk"
-'''
-                    sh 'chmod +x build.sh && ./build.sh'
-                }
+                sh '''
+                    echo "🔧 Cleaning and building APK..."
+                    flutter clean
+                    flutter pub get
+                    flutter build apk --release
+                '''
             }
         }
 
@@ -67,7 +73,13 @@ echo "✅ APK built at: build/app/outputs/flutter-apk/app-release.apk"
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds-id']]) {
                     sh '''
                         echo "☁️ Uploading APK to S3..."
-                        aws s3 cp build/app/outputs/flutter-apk/app-release.apk s3://$S3_BUCKET/app-release.apk --region $AWS_REGION
+                        if [ -f "$APK_OUTPUT_PATH" ]; then
+                            aws s3 cp "$APK_OUTPUT_PATH" "s3://$S3_BUCKET/app-release.apk" --region $AWS_REGION
+                            echo "✅ APK uploaded successfully."
+                        else
+                            echo "❌ APK file not found at: $APK_OUTPUT_PATH"
+                            exit 1
+                        fi
                     '''
                 }
             }
@@ -75,7 +87,7 @@ echo "✅ APK built at: build/app/outputs/flutter-apk/app-release.apk"
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'build/app/outputs/flutter-apk/*.apk', allowEmptyArchive: false
+                archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
             }
         }
     }
