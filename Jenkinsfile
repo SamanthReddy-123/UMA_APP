@@ -1,15 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs "NodeJS_12" // Make sure this version is defined in Jenkins > Global Tool Configuration
-    }
-
-    options {
-        timestamps()
-        ansiColor('xterm')
-    }
-
     environment {
         NODE_ENV = 'production'
     }
@@ -27,13 +18,24 @@ pipeline {
             }
         }
 
+        stage('Setup Node') {
+            steps {
+                sh '''
+                    echo "Checking Node.js version..."
+                    if ! command -v node >/dev/null; then
+                        echo "Node.js not found. Installing..."
+                        sudo apt update
+                        sudo apt install -y nodejs npm
+                    fi
+                    node -v
+                    npm -v
+                '''
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    retry(2) {
-                        sh 'npm install'
-                    }
-                }
+                sh 'npm install'
             }
         }
 
