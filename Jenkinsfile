@@ -43,30 +43,22 @@ pipeline {
             }
         }
 
-        stage('Create bash.sh') {
-            steps {
-                script {
-                    writeFile file: 'bash.sh', text: '''#!/bin/bash
-echo "Hello from Jenkins!"
-echo "Current Date and Time: $(date)"
-echo "Current User: $(whoami)"
-echo "Files in current directory:"
-ls -la
-'''
-                }
-                sh 'chmod +x bash.sh'
-            }
-        }
-
-        stage('Run bash.sh') {
-            steps {
-                sh './bash.sh'
-            }
-        }
-
         stage('Build APK') {
             steps {
-                sh 'chmod +x build.sh && ./build.sh'
+                script {
+                    writeFile file: 'build.sh', text: '''#!/bin/bash
+#!/bin/bash
+echo "🔧 Cleaning and fetching dependencies..."
+flutter clean
+flutter pub get
+
+echo "📦 Building release APK..."
+flutter build apk --release
+
+echo "✅ APK built at: build/app/outputs/flutter-apk/app-release.apk"
+'''
+                    sh 'chmod +x build.sh && ./build.sh'
+                }
             }
         }
 
@@ -74,16 +66,8 @@ ls -la
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds-id']]) {
                     sh '''
-                        echo "Creating bucket if not exists..."
-                        if ! aws s3 ls "s3://$S3_BUCKET" --region $AWS_REGION 2>&1 | grep -q 'NoSuchBucket'; then
-                            echo "Bucket already exists."
-                        else
-                            echo "Creating bucket: $S3_BUCKET"
-                            aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
-                        fi
-
-                        echo "Uploading APK to S3..."
-                        aws s3 cp build/app-debug.apk s3://$S3_BUCKET/ --region $AWS_REGION
+                        echo "☁️ Uploading APK to S3..."
+                        aws s3 cp build/app/outputs/flutter-apk/app-release.apk s3://$S3_BUCKET/app-release.apk --region $AWS_REGION
                     '''
                 }
             }
@@ -91,7 +75,7 @@ ls -la
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'build/app/outputs/flutter-apk/*.apk', allowEmptyArchive: false
             }
         }
     }
