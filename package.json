@@ -1,0 +1,18 @@
+{
+  "name": "uma_music_app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.72.4",
+    "react-navigation": "^4.4.4",
+    "react-native-gesture-handler": "^2.12.0",
+    "react-native-reanimated": "^3.3.0",
+    "react-native-track-player": "^3.3.2"
+  }
+}
