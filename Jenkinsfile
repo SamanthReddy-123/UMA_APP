@@ -78,13 +78,13 @@ ls -la
 
     post {
         always {
-            echo 'Pipeline completed.'
+            echo '🔁 Pipeline completed.'
         }
         success {
-            echo 'Build succeeded!'
+            echo '✅ Build succeeded!'
         }
         failure {
-            echo 'Build failed. Check logs.'
+            echo '❌ Build failed. Check logs.'
         }
     }
 }
