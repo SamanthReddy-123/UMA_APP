@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NODE_VERSION = '16' // Update Node version here
+        NODE_VERSION = '12'
     }
 
     stages {
@@ -14,8 +14,8 @@ pipeline {
 
         stage('Set Node Version') {
             steps {
-                sh 'nvm install $NODE_VERSION'
-                sh 'nvm use $NODE_VERSION'
+                sh 'node -v || (echo "Node.js not found. Installing Node.js..." && sudo apt update && sudo apt install -y nodejs npm)'
+                sh 'node -v' // Confirm Node.js version
             }
         }
 
@@ -27,14 +27,13 @@ pipeline {
 
         stage('Build APK') {
             steps {
-                sh 'chmod +x android/gradlew'
-                sh './android/gradlew assembleRelease'
+                sh './build.sh' // Adjust this based on your build script
             }
         }
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'android/app/build/outputs/apk/release/*.apk', allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
             }
         }
     }
