@@ -1,48 +1,7 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_ENV = 'production'
-        AWS_REGION = 'us-east-1'
-        S3_BUCKET = 'uma-apk-artifacts'
-    }
-
     stages {
-        stage('Cleanup') {
-            steps {
-                cleanWs()
-            }
-        }
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Verify Node Environment') {
-            steps {
-                sh '''
-                    echo "Node.js Version:"
-                    node -v
-                    echo "npm Version:"
-                    npm -v
-                '''
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                script {
-                    if (fileExists('package-lock.json')) {
-                        sh 'npm ci'
-                    } else {
-                        sh 'npm install'
-                    }
-                }
-            }
-        }
-
         stage('Create bash.sh') {
             steps {
                 script {
@@ -51,7 +10,7 @@ echo "Hello from Jenkins!"
 echo "Current Date and Time: $(date)"
 echo "Current User: $(whoami)"
 echo "Files in current directory:"
-ls -la
+ls -alh
 '''
                 }
                 sh 'chmod +x bash.sh'
@@ -64,48 +23,50 @@ ls -la
             }
         }
 
+        // ✅ New stage to create dummy build.sh
+        stage('Create build.sh') {
+            steps {
+                script {
+                    writeFile file: 'build.sh', text: '''#!/bin/bash
+echo "🛠️ Simulating APK build..."
+
+mkdir -p build
+echo "This is a dummy APK for testing purposes. Generated at: $(date)" > build/app-debug.apk
+
+echo "✅ Dummy APK created at build/app-debug.apk"
+'''
+                }
+                sh 'chmod +x build.sh'
+            }
+        }
+
         stage('Build APK') {
             steps {
-                sh 'chmod +x build.sh && ./build.sh'
+                sh './build.sh'
             }
         }
 
         stage('Upload APK to S3') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds-id']]) {
-                    sh '''
-                        echo "Creating bucket if not exists..."
-                        if ! aws s3 ls "s3://$S3_BUCKET" --region $AWS_REGION 2>&1 | grep -q 'NoSuchBucket'; then
-                            echo "Bucket already exists."
-                        else
-                            echo "Creating bucket: $S3_BUCKET"
-                            aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
-                        fi
-
-                        echo "Uploading APK to S3..."
-                        aws s3 cp build/app-debug.apk s3://$S3_BUCKET/app-debug.apk --region $AWS_REGION
-                    '''
-                }
+                echo "📦 Uploading APK to S3 (simulated)..."
+                // Add real AWS CLI command here if needed
             }
         }
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'build/app-debug.apk', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'build/app-debug.apk', fingerprint: true
+                echo "📁 APK archived successfully."
             }
         }
     }
 
     post {
         always {
-            echo '🔁 Pipeline completed.'
-        }
-        success {
-            echo '✅ Build succeeded!'
+            echo "🔁 Pipeline completed."
         }
         failure {
-            echo '❌ Build failed. Check logs.'
+            echo "❌ Build failed. Check logs."
         }
     }
 }
-
