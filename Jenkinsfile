@@ -4,7 +4,7 @@ pipeline {
     environment {
         NODE_ENV = 'production'
         AWS_REGION = 'us-east-1'
-        S3_BUCKET = 'your-s3-bucket-name' // 🔁 Replace with actual bucket
+        S3_BUCKET = 'uma-apk-artifacts'
     }
 
     stages {
@@ -70,23 +70,28 @@ ls -la
             }
         }
 
-        stage('Archive APK') {
+        stage('Upload APK to S3') {
             steps {
-                archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
-            }
-        }
-
-        stage('Upload to S3') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds-id' // 🔁 Replace with your Jenkins AWS credentials ID
-                ]]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds-id']]) {
                     sh '''
+                        echo "Creating bucket if not exists..."
+                        if ! aws s3 ls "s3://$S3_BUCKET" --region $AWS_REGION 2>&1 | grep -q 'NoSuchBucket'; then
+                            echo "Bucket already exists."
+                        else
+                            echo "Creating bucket: $S3_BUCKET"
+                            aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
+                        fi
+
                         echo "Uploading APK to S3..."
                         aws s3 cp build/app-debug.apk s3://$S3_BUCKET/ --region $AWS_REGION
                     '''
                 }
+            }
+        }
+
+        stage('Archive APK') {
+            steps {
+                archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
             }
         }
     }
