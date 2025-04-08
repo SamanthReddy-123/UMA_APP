@@ -41,6 +41,28 @@ pipeline {
             }
         }
 
+        stage('Create bash.sh') {
+            steps {
+                script {
+                    writeFile file: 'bash.sh', text: '''#!/bin/bash
+# Simple Jenkins-created shell script
+echo "Hello from Jenkins!"
+echo "Current Date and Time: $(date)"
+echo "Current User: $(whoami)"
+echo "Files in current directory:"
+ls -la
+'''
+                }
+                sh 'chmod +x bash.sh'
+            }
+        }
+
+        stage('Run bash.sh') {
+            steps {
+                sh './bash.sh'
+            }
+        }
+
         stage('Build APK') {
             steps {
                 sh 'chmod +x build.sh && ./build.sh'
