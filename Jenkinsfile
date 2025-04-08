@@ -1,51 +1,47 @@
 pipeline {
     agent any
-
-    environment {
-        NODE_ENV = 'production'
+    tools {
+        nodejs 'NodeJS_18' // Ensure this is configured in Jenkins global tools
     }
-
+    environment {
+        PATH = "${tool 'NodeJS_18'}/bin:${env.PATH}"
+    }
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/SamanthReddy-123/UMA_APP.git'
             }
         }
-
         stage('Install Dependencies') {
             steps {
-                script {
-                    // Install Node.js dependencies
-                    sh 'npm install'
-
-                    // Ensure Android Gradle Wrapper is executable
-                    sh 'chmod +x android/gradlew'
-                }
+                sh 'npm install'
             }
         }
-
+        stage('Verify Android Directory') {
+            steps {
+                sh 'pwd'
+                sh 'ls -la android' // Check if gradlew exists
+            }
+        }
         stage('Build APK') {
             steps {
                 script {
-                    // Build the APK in release mode
-                    dir('android') {
-                        sh './gradlew assembleRelease'
+                    if (fileExists('android/gradlew')) {
+                        sh 'chmod +x android/gradlew'
+                        sh './android/gradlew assembleRelease'
+                    } else {
+                        error "gradlew not found in android directory!"
                     }
                 }
             }
         }
-
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'android/app/build/outputs/apk/release/app-release.apk', fingerprint: true
+                archiveArtifacts artifacts: 'android/app/build/outputs/apk/release/app-release.apk', allowEmptyArchive: true
             }
         }
     }
-
     post {
-        success {
-            echo 'Build completed successfully!'
-        }
         failure {
             echo 'Build failed. Check logs for details.'
         }
