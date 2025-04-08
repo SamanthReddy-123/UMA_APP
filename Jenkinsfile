@@ -41,10 +41,10 @@ pipeline {
             }
         }
 
-        stage('Create build.sh') {
+        stage('Create bash.sh') {
             steps {
                 script {
-                    writeFile file: 'build.sh', text: '''#!/bin/bash
+                    writeFile file: 'bash.sh', text: '''#!/bin/bash
 # Simple Jenkins-created shell script
 echo "Hello from Jenkins!"
 echo "Current Date and Time: $(date)"
