@@ -18,16 +18,12 @@ pipeline {
             }
         }
 
-        stage('Setup Node') {
+        stage('Verify Node Environment') {
             steps {
                 sh '''
-                    echo "Checking Node.js version..."
-                    if ! command -v node >/dev/null; then
-                        echo "Node.js not found. Installing..."
-                        sudo apt update
-                        sudo apt install -y nodejs npm
-                    fi
+                    echo "Node.js Version:"
                     node -v
+                    echo "npm Version:"
                     npm -v
                 '''
             }
@@ -35,7 +31,13 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                script {
+                    if (fileExists('package-lock.json')) {
+                        sh 'npm ci'
+                    } else {
+                        sh 'npm install'
+                    }
+                }
             }
         }
 
