@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/SamanthReddy-123/UMA_APP.git'
+                git branch: 'main', url: 'https://github.com/SamanthReddy-123/UMA_APP.git'
             }
         }
 
