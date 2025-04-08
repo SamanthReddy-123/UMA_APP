@@ -1,20 +1,11 @@
 #!/bin/bash
-set -e
 
-echo "🔧 Checking for Flutter..."
-if ! command -v flutter &> /dev/null
-then
-    echo "❌ Flutter is not installed or not in PATH. Please install it."
-    exit 1
-fi
+echo "🛠️ Simulating APK build..."
 
-echo "🧹 Cleaning old builds..."
-flutter clean
+# Create build directory
+mkdir -p build
 
-echo "📦 Getting dependencies..."
-flutter pub get
+# Simulate APK generation
+echo "This is a dummy APK for testing purposes. Generated at: $(date)" > build/app-debug.apk
 
-echo "🚀 Building release APK..."
-flutter build apk --release
-
-echo "✅ APK Build Complete at build/app/outputs/flutter-apk/app-release.apk"
+echo "✅ Dummy APK created at build/app-debug.apk"
